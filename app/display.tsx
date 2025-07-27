@@ -8,7 +8,7 @@ import {cn} from "~/lib/utils";
 import {FranchiseRowHexagon} from "~/lib/franchise-row-hexagon";
 import {RowTierCell} from "~/lib/row-tier-cell";
 
-type RowPicks = {
+export type RowPicks = {
   row1: FranchiseNames
   row2: FranchiseNames
   row3: FranchiseNames
@@ -96,12 +96,14 @@ export default function Display() {
 
     <div className="absolute top-10 right-10">
       <FranchiseBanner className="text-rsc-red" />
+      <div className="absolute inset-0 flex items-center justify-center text-3xl font-bold text-black">
+        Franchise
+      </div>
     </div>
 
-    <div className="absolute left-[14%] right-[12%] top-[180px] flex flex-col gap-2">
+    <div className="absolute left-[16%] right-[12%] top-[160px] flex flex-col gap-2">
       <AlternatingFranchiseRows />
     </div>
-
 
     <div className="absolute bottom-10 left-10">
       <RscBannerLogo className="text-rsc-red w-[120px] h-[180px]" />
@@ -118,30 +120,85 @@ const getAlphabetLetterFromRowNumber = (rowNumber: number)  => {
   return alphabet[rowNumber] || "N/A";
 }
 
+
+const FranchiseLogos: Record<FranchiseNames, string> = {
+  monarch: "/Franchise%20Logos/Monarch Realm.png",
+  wrg: "/Franchise%20Logos/White Rabbit Gaming.png",
+  omnius: "/Franchise%20Logos/Omnius Gaming.png",
+  cosmico: "/Franchise%20Logos/CosmiCo.png",
+  azura: "/Franchise%20Logos/azg.png",
+  "death-cloud-esports": "/Franchise%20Logos/Death Cloud Esports.png",
+  genesix: "/Franchise%20Logos/GeneSix.png",
+  shadow: "/Franchise%20Logos/shadow.png",
+  unity: "/Franchise%20Logos/unity.png",
+  oxgaming: "/Franchise%20Logos/oxgaming.png",
+  "": "/Franchise%20Logos/placeholder.png" // Placeholder for empty rows
+}
+
+const SizeAdjustment = (franchiseName: FranchiseNames) => {
+  switch (franchiseName) {
+    case "azura":
+    case "cosmico":
+    case "genesix":
+    case "monarch":
+    case "unity":
+      return "w-12";
+    case "shadow":
+    case "death-cloud-esports":
+      return "w-10 ml-2";
+    case "omnius":
+      return "w-8 ml-2"
+    case "wrg":
+      return "w-8 ml-2";
+    case "oxgaming":
+      return "w-16";
+    default:
+      return "w-12";
+  }
+}
+
 const AlternatingFranchiseRows = () => {
-  // const [pickedRows, setPickedRows] = useState<RowPicks>();
-  //
-  // useEffect(() => {
-  //   const messageRef = ref(db, "broadcast/message");
-  //   const unsubscribe = onValue(messageRef, (snapshot) => {
-  //     const data = snapshot.val();
-  //     setMessage(data || "");
-  //   });
-  //
-  //   return () => unsubscribe();
-  // }, []);
+  const [pickedRows, setPickedRows] = useState<RowPicks>({
+    row1: "",
+    row2: "",
+    row3: "",
+    row4: "",
+    row5: "",
+    row6: "",
+    row7: "",
+    row8: "",
+    row9: "",
+    row10: ""
+  } as any); // Just for type compatibility, should be improved later
+
+  useEffect(() => {
+    const messageRef = ref(db, "broadcast/pickData");
+    const unsubscribe = onValue(messageRef, (snapshot) => {
+      const data = snapshot.val();
+      // If no data is found, don't set pickedRows as we need the empty state to render out
+      if (data) {
+        setPickedRows(data);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return <>
     {Object.entries(rowRules).map(([key, rowValues], index) => {
       const isReversed = index % 2 !== 0;
-      return <div className={cn("flex gap-2 min-h-[40px]", isReversed && "flex-row-reverse")} key={key}>
-        <div className="relative flex items-center border-rsc-blue border rounded-l-2xl">
-          <FranchiseRowHexagon className={cn("absolute -top-2 bottom-0 text-rsc-blue", isReversed ? "-right-12":"-left-6")} />
+      const rowKey = `row${index+1}` as keyof typeof rowRules;
 
-          <span className={cn("absolute top-4 text-3xl font-bold flex items-center justify-center", isReversed ? "-right-5":"-left-5", index === 8 && "left-9", index === 9 && "right-8")}>{getAlphabetLetterFromRowNumber(index)}</span>
+      return <div className={cn("flex items-center gap-2 min-h-[40px]", isReversed && "flex-row-reverse")} key={key}>
+        <div className={cn("relative flex items-center border-rsc-blue border h-[50px]", isReversed ? "rounded-l-2xl":"rounded-r-2xl")}>
+          <FranchiseRowHexagon className={cn("absolute -top-3 bottom-0 text-rsc-blue", isReversed ? "-right-6":"-left-6")} />
 
-          <div className={cn("", isReversed ? "pr-20":"pl-20")}>
-            <img className="w-12" src="/Franchise%20Logos/Monarch Realm.png" alt="#"/>
+          <span className={cn("absolute top-1.5 text-3xl font-bold flex items-center justify-center", isReversed ? "right-[5px]":"left-[6px]", index === 8 && "left-[10px]", index === 9 && "right-[4px]")}>
+            {getAlphabetLetterFromRowNumber(index)}
+          </span>
+
+          <div className={cn("w-[110px]", isReversed ? "pr-8":"pl-14")}>
+            {pickedRows[rowKey] && <img className={SizeAdjustment(pickedRows[rowKey])} src={FranchiseLogos[pickedRows[rowKey]]} alt=""/>}
           </div>
         </div>
 
