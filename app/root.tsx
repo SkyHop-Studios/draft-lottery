@@ -4,7 +4,7 @@ import "/app/app.css"
 
 export default function Root() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white font-apotek">
       <Outlet/>
     </div>
   );

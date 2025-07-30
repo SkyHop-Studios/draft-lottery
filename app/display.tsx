@@ -23,63 +23,63 @@ export type RowPicks = {
 
 const rowRules = {
   row1: {
-    prospect: 1,
-    rival: 7,
-    elite: 8,
-    master: 6
+    prospect: 8,
+    rival: 10,
+    elite: 3,
+    master: 1
   },
   row2: {
-    prospect: 5,
-    rival: 8,
-    elite: 7,
-    master: 2,
+    prospect: 3,
+    rival: 2,
+    elite: 8,
+    master: 9,
   },
   row3: {
-    prospect: 3,
-    rival: 1,
-    elite: 9,
-    master: 9
+    prospect: 1,
+    rival: 7,
+    elite: 10,
+    master: 4
   },
   row4: {
-    prospect: 4,
-    rival: 10,
+    prospect: 6,
+    rival: 1,
     elite: 5,
-    master: 3
+    master: 10
   },
   row5: {
-    prospect: 2,
-    rival: 2,
-    elite: 10,
+    prospect: 4,
+    rival: 3,
+    elite: 7,
     master: 8
   },
   row6: {
-    prospect: 7,
-    rival: 3,
-    elite: 2,
-    master: 10
+    prospect: 10,
+    rival: 9,
+    elite: 1,
+    master: 2
   },
   row7: {
-    prospect: 6,
-    rival: 9,
-    elite: 6,
-    master: 1
+    prospect: 2,
+    rival: 5,
+    elite: 9,
+    master: 6
   },
   row8: {
-    prospect: 8,
+    prospect: 7,
     rival: 6,
     elite: 4,
-    master: 4
-  },
-  row9: {
-    prospect: 9,
-    rival: 5,
-    elite: 3,
     master: 5
   },
+  row9: {
+    prospect: 5,
+    rival: 8,
+    elite: 6,
+    master: 3
+  },
   row10: {
-    prospect: 10,
+    prospect: 9,
     rival: 4,
-    elite: 1,
+    elite: 2,
     master: 7
   }
 }
@@ -96,12 +96,23 @@ export default function Display() {
 
     <div className="absolute top-10 right-10">
       <FranchiseBanner className="text-rsc-red" />
-      <div className="absolute inset-0 flex items-center justify-center text-3xl font-bold text-black">
-        Franchise
+      <div className="absolute inset-0 flex items-center justify-between text-3xl font-bold text-black uppercase px-12">
+        <img className="w-12" src="/franchise.png" alt=""/>
+
+        <div>Franchise</div>
+
+        <img className="w-12" src="/franchise.png" alt=""/>
       </div>
     </div>
 
-    <div className="absolute left-[16%] right-[12%] top-[160px] flex flex-col gap-2">
+    <div className="absolute left-[12%] right-[12%] top-[260px] flex justify-center items-center">
+      <div>
+        <div className="text-4xl uppercase font-bold text-center">UP NEXT:</div>
+        <CurrentlyChoosingFranchise/>
+      </div>
+    </div>
+
+    <div className="absolute left-[12%] right-[12%] top-[260px] grid grid-cols-2 gap-8">
       <AlternatingFranchiseRows />
     </div>
 
@@ -114,8 +125,47 @@ export default function Display() {
   </div>
 }
 
+const CurrentlyChoosingFranchise = () => {
+  const [currentlyChoosing, setCurrentlyChoosing] = useState<number>(0);
+  const [pickOrder, setPickOrder] = useState<FranchiseNames[]>([]);
 
-const getAlphabetLetterFromRowNumber = (rowNumber: number)  => {
+  useEffect(() => {
+    const messageRef = ref(db, "broadcast/currentlyChoosing");
+    const unsubscribe = onValue(messageRef, (snapshot) => {
+      const data = snapshot.val();
+      // If no data is found, don't set pickedRows as we need the empty state to render out
+      if (data) {
+        setCurrentlyChoosing(data);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const pickOrderRef = ref(db, "broadcast/pickOrder");
+    const unsubscribe = onValue(pickOrderRef, (snapshot) => {
+      const data = snapshot.val();
+      // If no data is found, don't set pickedRows as we need the empty state to render out
+      if (data) {
+        setPickOrder(data);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const currentlyChoosingFranchise = pickOrder[currentlyChoosing];
+
+  console.log(currentlyChoosing, pickOrder, currentlyChoosingFranchise, FranchiseLogos[currentlyChoosingFranchise]);
+
+  return <>
+    {FranchiseLogos[currentlyChoosingFranchise] && <img className={"w-[425px]"} src={FranchiseLogos[currentlyChoosingFranchise]} alt=""/>}
+  </>
+}
+
+
+const getAlphabetLetterFromRowNumber = (rowNumber: number) => {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   return alphabet[rowNumber] || "N/A";
 }
@@ -189,22 +239,22 @@ const AlternatingFranchiseRows = () => {
       const isReversed = index % 2 !== 0;
       const rowKey = `row${index+1}` as keyof typeof rowRules;
 
-      return <div className={cn("flex items-center gap-2 min-h-[40px]", isReversed && "flex-row-reverse")} key={key}>
-        <div className={cn("relative flex items-center border-rsc-blue border h-[50px]", isReversed ? "rounded-l-2xl":"rounded-r-2xl")}>
-          <FranchiseRowHexagon className={cn("absolute -top-3 bottom-0 text-rsc-blue", isReversed ? "-right-6":"-left-6")} />
+      return <div className={cn("flex items-center gap-2 min-h-[40px]", isReversed && "justify-end")} key={key}>
+        <div className={cn("relative flex items-center border-rsc-blue border h-[50px] rounded-r-2xl")}>
+          <FranchiseRowHexagon className={cn("absolute -top-3 bottom-0 text-rsc-blue -left-6")} />
 
-          <span className={cn("absolute top-1.5 text-3xl font-bold flex items-center justify-center", isReversed ? "right-[5px]":"left-[6px]", index === 8 && "left-[10px]", index === 9 && "right-[4px]")}>
+          <span className={cn("absolute top-1.5 text-3xl font-bold flex items-center justify-center left-[6px]", index === 8 && "left-[10px]", index === 9 && "left-[4px]")}>
             {getAlphabetLetterFromRowNumber(index)}
           </span>
 
-          <div className={cn("w-[110px]", isReversed ? "pr-8":"pl-14")}>
+          <div className={cn("w-[110px] pl-14")}>
             {pickedRows[rowKey] && <img className={SizeAdjustment(pickedRows[rowKey])} src={FranchiseLogos[pickedRows[rowKey]]} alt=""/>}
           </div>
         </div>
 
         {Object.entries(rowValues).map(([rowKey, tierValues], index) => {
           const tierClass = `text-rsc-${rowKey} `;
-          return <div className={cn("relative flex gap-2", isReversed && "flex-row-reverse")} key={rowKey+key}>
+          return <div className={cn("relative flex gap-2")} key={rowKey+key}>
             <RowTierCell className={tierClass} />
 
             <div className="absolute left-0 top-0 bottom-0 right-0 flex items-center justify-center text-black text-2xl font-bold">

@@ -1,9 +1,10 @@
 import {useCallback, useEffect, useState} from "react"
 import { db } from "./firebase"
-import { ref, set } from "firebase/database"
+import {onValue, ref, set} from "firebase/database"
 import type {RowPicks} from "~/display";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "~/components/ui/select";
 import {FranchiseSelectInput} from "~/lib/franchise-select-input";
+import PasswordGate from "~/lib/password-gate";
 
 export type FranchiseNames = "wrg" | "monarch" | "genesix" | "omnius" | "azura" | "cosmico" | "oxgaming" | "death-cloud-esports" | "shadow" | "unity"
 
@@ -98,6 +99,8 @@ const allFranchises: FranchiseNames[] = [
   "unity"
 ];
 
+const pickOrder: FranchiseNames[] = []
+
 const initialState = {
   row1: "",
   row2: "",
@@ -112,146 +115,195 @@ const initialState = {
 }
 
 export default function Control() {
-  const [currentlyChoosing, setCurrentlyChoosing] = useState<FranchiseNames>();
-
+  const [currentlyChoosing, setCurrentlyChoosing] = useState<number>(0);
+  const [pickOrder, setPickOrder] = useState<FranchiseNames[]>([]);
   const [pickedRows, setPickedRows] = useState<RowPicks>(initialState as any); // Just lazy type assertion for initial state
 
-  const updateMessage = useCallback(() => {
+  useEffect(() => {
+    const messageRef = ref(db, "broadcast/pickData");
+    const unsubscribe = onValue(messageRef, (snapshot) => {
+      const data = snapshot.val();
+      // If no data is found, don't set pickedRows as we need the empty state to render out
+      if (data) {
+        setPickedRows(data);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const pickOrderRef = ref(db, "broadcast/pickOrder");
+    const unsubscribeOrder = onValue(pickOrderRef, (snapshot) => {
+      const data = snapshot.val();
+      // If no data is found, don't set pickedRows as we need the empty state to render out
+      if (data) {
+        setPickOrder(data);
+      }
+    });
+
+    return () => unsubscribeOrder();
+  }, []);
+
+  useEffect(() => {
+    const pickOrderRef = ref(db, "broadcast/currentlyChoosing");
+    const unsubscribeOrder = onValue(pickOrderRef, (snapshot) => {
+      const data = snapshot.val();
+      // If no data is found, don't set pickedRows as we need the empty state to render out
+      if (data) {
+        setCurrentlyChoosing(data);
+      }
+    });
+
+    return () => unsubscribeOrder();
+  }, []);
+
+  const updateBroadcast = useCallback(() => {
     const pickRef = ref(db, "broadcast/pickData");
+    const currentlyChoosingRef = ref(db, "broadcast/currentlyChoosing");
+
     set(pickRef, pickedRows).then(() => {
-      console.log(`Updated broadcast with picks:`, pickedRows);
+    }).catch((error) => {
+      console.error("Failed to send message:", error);
+    });
+
+    set(currentlyChoosingRef, currentlyChoosing+1).then(() => {
+      window.alert("Updated current choosing successfully!");
     }).catch((error) => {
       console.error("Failed to send message:", error);
     });
   }, [ pickedRows ]);
 
+  const updatePickOrder = useCallback(() => {
+    const pickOrderRef = ref(db, "broadcast/pickOrder");
+
+    set(pickOrderRef, pickOrder).then(() => {
+      window.alert("Updated pick order successfully!");
+    }).catch((error) => {
+      console.error("Failed to send message:", error);
+    });
+  }, [ pickOrder, currentlyChoosing ]);
+
   const clearBroadcast = useCallback(() => {
     const pickRef = ref(db, "broadcast/pickData");
+    const currentlyChoosingRef = ref(db, "broadcast/currentlyChoosing");
     set(pickRef, initialState).then(() => {
       console.log(`Updated broadcast with picks:`, initialState);
     }).catch((error) => {
       console.error("Failed to send message:", error);
     });
-  }, [ pickedRows, initialState ]);
+    set(currentlyChoosingRef, 0).then(() => {
+    }).catch((error) => {
+      console.error("Failed to send message:", error);
+    });
+  }, [ pickedRows, currentlyChoosing, initialState ]);
 
-  return (
-    <div className="p-4">
-      <div className="mb-8">
-        Current Franchise Choosing:
-        <div className="">
-          <FranchiseSelectInput
-            value={currentlyChoosing}
-            onValueChange={(val) => setCurrentlyChoosing(val as FranchiseNames)}
-          />
-        </div>
+  const clearPickOrder = useCallback(() => {
+    const pickOrderRef = ref(db, "broadcast/pickOrder");
+    const currentlyChoosingRef = ref(db, "broadcast/currentlyChoosing");
+
+    set(pickOrderRef, []).then(() => {
+      window.alert("Updated pick order successfully!");
+      setPickOrder([]);
+    }).catch((error) => {
+      console.error("Failed to send message:", error);
+    });
+
+    set(currentlyChoosingRef, 0).then(() => {
+
+    }).catch((error) => {
+      console.error("Failed to send message:", error);
+    });
+  }, [ pickOrder, currentlyChoosing ]);
+
+  return <PasswordGate>
+    <div className="p-4 grid grid-cols-2 gap-4">
+      <div className="col-span-2">
+        Current Pick: {currentlyChoosing}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <div>
-            Row 1:
-            <div>
+      <div className="">
+        Specify Pick Order
+        <div className="flex flex-col gap-2">
+          {allFranchises.map((franchise, index) => {
+            const handlePickChange = (value: FranchiseNames) => {
+              const newPickOrder = [...pickOrder];
+              newPickOrder[index] = value;
+              setPickOrder(newPickOrder);
+            }
+
+            return <div className="flex gap-2 items-center" key={index + index}>
+              <div>
+                Row {index + 1}:
+              </div>
+
               <FranchiseSelectInput
-                value={pickedRows["row1"]}
-                onValueChange={value => setPickedRows({...pickedRows, row1: value})}
+                options={allFranchises.filter((value) =>
+                  !pickOrder.includes(value) || pickOrder[index] === value
+                )}
+                value={pickOrder[index]}
+                onValueChange={handlePickChange}
               />
             </div>
-          </div>
-
-          <div>
-            Row 2:
-            <div>
-              <FranchiseSelectInput value={pickedRows["row2"]}
-                                    onValueChange={value => setPickedRows({...pickedRows, row2: value})}/>
-            </div>
-          </div>
-
-          <div>
-            Row 3:
-            <div>
-              <FranchiseSelectInput value={pickedRows["row3"]}
-                                    onValueChange={value => setPickedRows({...pickedRows, row3: value})}/>
-            </div>
-          </div>
-
-          <div>
-            Row 4:
-            <div>
-              <FranchiseSelectInput value={pickedRows["row4"]}
-                                    onValueChange={value => setPickedRows({...pickedRows, row4: value})}/>
-            </div>
-          </div>
-
-          <div>
-            Row 5:
-            <div>
-              <FranchiseSelectInput value={pickedRows["row5"]}
-                                    onValueChange={value => setPickedRows({...pickedRows, row5: value})}/>
-            </div>
-          </div>
+          })}
         </div>
 
-        <div>
-          <div>
-            Row 6:
-            <div>
-              <FranchiseSelectInput value={pickedRows["row6"]}
-                                    onValueChange={value => setPickedRows({...pickedRows, row6: value})}/>
-            </div>
-          </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={clearPickOrder}
+            className="ml-2 mt-4 p-2 rounded bg-gray-800 text-white cursor-pointer">
+            Clear Pick Order
+          </button>
 
-          <div>
-            Row 7:
-            <div>
-              <FranchiseSelectInput value={pickedRows["row7"]}
-                                    onValueChange={value => setPickedRows({...pickedRows, row7: value})}/>
-            </div>
-          </div>
-
-          <div>
-            Row 8:
-            <div>
-              <FranchiseSelectInput value={pickedRows["row8"]}
-                                    onValueChange={value => setPickedRows({...pickedRows, row8: value})}/>
-            </div>
-          </div>
-
-          <div>
-            Row 9:
-            <div>
-              <FranchiseSelectInput value={pickedRows["row9"]}
-                                    onValueChange={value => setPickedRows({...pickedRows, row9: value})}/>
-            </div>
-          </div>
-
-          <div>
-            Row 10:
-            <div>
-              <FranchiseSelectInput value={pickedRows["row10"]}
-                                    onValueChange={value => setPickedRows({...pickedRows, row10: value})}/>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={updatePickOrder}
+            className="ml-2 mt-4 p-2 rounded bg-blue-500 text-white cursor-pointer">
+            Save Pick Order
+          </button>
         </div>
+
       </div>
 
-      <button
-        type="button"
-        onClick={() => {
-          clearBroadcast()
-        }}
-        className="ml-2 mt-4 p-2 rounded bg-gray-800 text-white cursor-pointer">
-        Clear Broadcast
-      </button>
+      <div>
+        Specify Picks
+        <div className="flex flex-col gap-2">
+          {allFranchises.map((franchise, index) => {
+            return <div className="flex items-center gap-2" key={index}>
+              Row {index + 1}:
+              <div>
+                <FranchiseSelectInput
+                  options={allFranchises}
+                  value={pickedRows[`row${index + 1}` as keyof RowPicks]}
+                  onValueChange={value => setPickedRows({...pickedRows, [`row${index + 1}`]: value})}
+                />
+              </div>
+            </div>
+          })}
+        </div>
 
-      <button
-        type="button"
-        onClick={() => {
-          console.log("Update button clicked");
-          updateMessage()
-        }}
-        className="ml-2 mt-4 p-2 rounded bg-blue-500 text-white cursor-pointer">
-        Update Broadcast
-      </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              clearBroadcast()
+            }}
+            className="ml-2 mt-4 p-2 rounded bg-gray-800 text-white cursor-pointer">
+            Clear Broadcast
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              console.log("Update button clicked");
+              updateBroadcast()
+            }}
+            className="ml-2 mt-4 p-2 rounded bg-blue-500 text-white cursor-pointer">
+            Update Broadcast
+          </button>
+        </div>
+      </div>
     </div>
-  );
+  </PasswordGate>
 }
