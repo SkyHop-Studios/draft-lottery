@@ -9,7 +9,7 @@ export default function Root() {
       <Meta />
     </head>
     <body>
-      <div className="min-h-screen bg-black text-white font-apotek">
+      <div className="min-h-screen text-white font-apotek">
         <Outlet/>
       </div>
     </body>

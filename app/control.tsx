@@ -1,10 +1,11 @@
 import {useCallback, useEffect, useState} from "react"
 import { db } from "./firebase"
 import {onValue, ref, set} from "firebase/database"
-import type {RowPicks} from "~/display";
+import {CurrentlyChoosingFranchise, getAlphabetLetterFromRowNumber, type RowPicks} from "~/display";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "~/components/ui/select";
 import {FranchiseSelectInput} from "~/lib/franchise-select-input";
 import PasswordGate from "~/lib/password-gate";
+import {Switch} from "~/components/ui/switch";
 
 export type FranchiseNames = "wrg" | "monarch" | "genesix" | "omnius" | "azura" | "cosmico" | "oxgaming" | "death-cloud-esports" | "shadow" | "unity"
 
@@ -36,6 +37,7 @@ const initialState = {
 
 export default function Control() {
   const [currentlyChoosing, setCurrentlyChoosing] = useState<number>(0);
+  const [backgroundOn, setBackgroundOn] = useState<boolean>(true);
   const [pickOrder, setPickOrder] = useState<FranchiseNames[]>([]);
   const [pickedRows, setPickedRows] = useState<RowPicks>(initialState as any); // Just lazy type assertion for initial state
 
@@ -47,6 +49,16 @@ export default function Control() {
       if (data) {
         setPickedRows(data);
       }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const messageRef = ref(db, "broadcast/backgroundOn");
+    const unsubscribe = onValue(messageRef, (snapshot) => {
+      const data = snapshot.val();
+      setBackgroundOn(data);
     });
 
     return () => unsubscribe();
@@ -104,6 +116,18 @@ export default function Control() {
     });
   }, [ pickOrder, currentlyChoosing ]);
 
+  const updateBackground = useCallback((checked: boolean) => {
+    const backgroundRef = ref(db, "broadcast/backgroundOn");
+
+    console.log(checked);
+    set(backgroundRef, checked).then(() => {
+      setBackgroundOn(checked);
+      window.alert("Updated backgroundOn successfully!");
+    }).catch((error) => {
+      console.error("Failed to send message:", error);
+    });
+  }, [ backgroundOn ]);
+
   const clearBroadcast = useCallback(() => {
     const pickRef = ref(db, "broadcast/pickData");
     const currentlyChoosingRef = ref(db, "broadcast/currentlyChoosing");
@@ -137,9 +161,21 @@ export default function Control() {
   }, [ pickOrder, currentlyChoosing ]);
 
   return <PasswordGate>
-    <div className="p-4 grid grid-cols-2 gap-4">
+    <div className="p-4 grid grid-cols-2 gap-4 bg-black min-h-screen">
       <div className="col-span-2">
         Current Pick: {currentlyChoosing}
+        <div>
+          Background On:
+          <Switch
+            checked={backgroundOn}
+            onCheckedChange={(checked) => updateBackground(checked)}
+          />
+        </div>
+
+
+        <div style={{ scale: 0.5 }}>
+          <CurrentlyChoosingFranchise />
+        </div>
       </div>
 
       <div className="">
@@ -188,20 +224,23 @@ export default function Control() {
 
       <div>
         Specify Picks
-        <div className="flex flex-col gap-2">
+        {pickOrder && <div className="flex flex-col gap-2">
           {allFranchises.map((franchise, index) => {
+            // Should be disabled if pickedRows already has a value for this row
+            const disabled = !!pickedRows[`row${index + 1}` as keyof RowPicks];
             return <div className="flex items-center gap-2" key={index}>
-              Row {index + 1}:
-              <div>
+              Row {getAlphabetLetterFromRowNumber(index)}:
+              <div className={disabled && "cursor-not-allowed pointer-events-none opacity-50"}>
                 <FranchiseSelectInput
-                  options={allFranchises}
+                  options={allFranchises.filter((value) => value === pickOrder[currentlyChoosing] || pickedRows[`row${index + 1}` as keyof RowPicks]
+                  )}
                   value={pickedRows[`row${index + 1}` as keyof RowPicks]}
                   onValueChange={value => setPickedRows({...pickedRows, [`row${index + 1}`]: value})}
                 />
               </div>
             </div>
           })}
-        </div>
+        </div>}
 
         <div className="flex gap-2">
           <button

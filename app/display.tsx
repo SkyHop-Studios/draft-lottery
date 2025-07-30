@@ -85,7 +85,19 @@ const rowRules = {
 }
 
 export default function Display() {
-  return <div className="h-screen bg-center bg-cover relative" style={{ backgroundImage: `url(/background.png)` }}>
+  const [backgroundOn, setBackgroundOn] = useState<boolean>(true);
+
+  useEffect(() => {
+    const messageRef = ref(db, "broadcast/backgroundOn");
+    const unsubscribe = onValue(messageRef, (snapshot) => {
+      const data = snapshot.val();
+      setBackgroundOn(data);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return <div className="h-screen bg-center bg-cover relative" style={{ backgroundImage: backgroundOn ? `url(/background.png)`:"" }}>
     <div className="w-[180px] h-[170px] bg-center bg-contain bg-no-repeat absolute left-10 top-10" style={{ backgroundImage: `url(/rsc-logo.png)` }}>
 
     </div>
@@ -125,7 +137,7 @@ export default function Display() {
   </div>
 }
 
-const CurrentlyChoosingFranchise = () => {
+export const CurrentlyChoosingFranchise = () => {
   const [currentlyChoosing, setCurrentlyChoosing] = useState<number>(0);
   const [pickOrder, setPickOrder] = useState<FranchiseNames[]>([]);
 
@@ -158,18 +170,18 @@ const CurrentlyChoosingFranchise = () => {
   const currentlyChoosingFranchise = pickOrder[currentlyChoosing];
 
   return <>
-    {FranchiseLogos[currentlyChoosingFranchise] && <img className={"w-[425px]"} src={FranchiseLogos[currentlyChoosingFranchise]} alt=""/>}
+    {FranchiseLogos[currentlyChoosingFranchise] && <img className={cn("w-[425px]", currentlyChoosingFranchise === "wrg" && "w-[300px]", currentlyChoosing === "omnius" && "w-[300px]")} src={FranchiseLogos[currentlyChoosingFranchise]} alt=""/>}
   </>
 }
 
 
-const getAlphabetLetterFromRowNumber = (rowNumber: number) => {
+export const getAlphabetLetterFromRowNumber = (rowNumber: number) => {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   return alphabet[rowNumber] || "N/A";
 }
 
 
-const FranchiseLogos: Record<FranchiseNames, string> = {
+export const FranchiseLogos: Record<FranchiseNames, string> = {
   monarch: "/Franchise%20Logos/Monarch Realm.png",
   wrg: "/Franchise%20Logos/White Rabbit Gaming.png",
   omnius: "/Franchise%20Logos/Omnius Gaming.png",
