@@ -8,84 +8,6 @@ import PasswordGate from "~/lib/password-gate";
 
 export type FranchiseNames = "wrg" | "monarch" | "genesix" | "omnius" | "azura" | "cosmico" | "oxgaming" | "death-cloud-esports" | "shadow" | "unity"
 
-export type PickOrder = {
-  currentlyChoosing: FranchiseNames
-  rowPicks: {
-    row1: FranchiseNames
-    row2: FranchiseNames
-    row3: FranchiseNames
-    row4: FranchiseNames
-    row5: FranchiseNames
-    row6: FranchiseNames
-    row7: FranchiseNames
-    row8: FranchiseNames
-    row9: FranchiseNames
-    row10: FranchiseNames
-  }
-  rowRules: {
-    row1: {
-      prospect: 1
-      rival: 7
-      elite: 8
-      master: 6
-    }
-    row2: {
-      prospect: 5
-      rival: 8
-      elite: 7
-      master: 2
-    }
-    row3: {
-      prospect: 3
-      rival: 1
-      elite: 9
-      master: 9
-    }
-    row4: {
-      prospect: 4
-      rival: 10
-      elite: 5
-      master: 3
-    }
-    row5: {
-      prospect: 2
-      rival: 2
-      elite: 10
-      master: 8
-    }
-    row6: {
-      prospect: 7
-      rival: 3
-      elite: 2
-      master: 10
-    }
-    row7: {
-      prospect: 6
-      rival: 9
-      elite: 6
-      master: 1
-    }
-    row8: {
-      prospect: 8
-      rival: 6
-      elite: 4
-      master: 4
-    }
-    row9: {
-      prospect: 9
-      rival: 5
-      elite: 3
-      master: 5
-    }
-    row10: {
-      prospect: 10
-      rival: 4
-      elite: 1
-      master: 7
-    }
-  }
-}
-
 const allFranchises: FranchiseNames[] = [
   "wrg",
   "monarch",
@@ -98,8 +20,6 @@ const allFranchises: FranchiseNames[] = [
   "shadow",
   "unity"
 ];
-
-const pickOrder: FranchiseNames[] = []
 
 const initialState = {
   row1: "",

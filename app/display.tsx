@@ -157,8 +157,6 @@ const CurrentlyChoosingFranchise = () => {
 
   const currentlyChoosingFranchise = pickOrder[currentlyChoosing];
 
-  console.log(currentlyChoosing, pickOrder, currentlyChoosingFranchise, FranchiseLogos[currentlyChoosingFranchise]);
-
   return <>
     {FranchiseLogos[currentlyChoosingFranchise] && <img className={"w-[425px]"} src={FranchiseLogos[currentlyChoosingFranchise]} alt=""/>}
   </>
